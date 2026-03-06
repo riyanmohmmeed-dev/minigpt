@@ -1,0 +1,62 @@
+[
+  {
+    "id": "py-reverse-string",
+    "instruction": "Write a Python function that takes a string and returns it reversed. Do not use built-in reverse.",
+    "language": "python",
+    "topic": "strings"
+  },
+  {
+    "id": "py-fizzbuzz",
+    "instruction": "Write a Python function that, given an integer n, returns a list of strings from 1 to n where multiples of 3 are 'Fizz', multiples of 5 are 'Buzz', and multiples of both are 'FizzBuzz'.",
+    "language": "python",
+    "topic": "algorithms"
+  },
+  {
+    "id": "py-valid-parentheses",
+    "instruction": "Write a Python function that takes a string containing only '(', ')', '{', '}', '[' and ']' and returns True if the brackets are balanced, False otherwise.",
+    "language": "python",
+    "topic": "data-structures"
+  },
+  {
+    "id": "py-json-flatten",
+    "instruction": "Write a Python function that flattens a nested dict so that keys become dot-separated paths, e.g. {'a': {'b': 1}} -> {'a.b': 1}.",
+    "language": "python",
+    "topic": "data-structures"
+  },
+  {
+    "id": "py-prime-check",
+    "instruction": "Write a Python function that returns True if a positive integer is prime, False otherwise. Optimize for large numbers.",
+    "language": "python",
+    "topic": "algorithms"
+  },
+  {
+    "id": "py-read-csv",
+    "instruction": "Write a Python script that reads a CSV file path from the command line and prints the column names and the first 5 rows. Use the csv module.",
+    "language": "python",
+    "topic": "io"
+  },
+  {
+    "id": "py-http-get",
+    "instruction": "Write a Python function that takes a URL, performs a GET request, and returns the response body as a string. Handle timeouts and non-2xx status codes.",
+    "language": "python",
+    "topic": "api"
+  },
+  {
+    "id": "py-decorator-timing",
+    "instruction": "Write a Python decorator that measures and prints the execution time of the wrapped function in seconds.",
+    "language": "python",
+    "topic": "language-features"
+  },
+  {
+    "id": "py-list-unique",
+    "instruction": "Write a Python function that takes a list and returns a new list with duplicates removed while preserving order.",
+    "language": "python",
+    "topic": "data-structures"
+  },
+  {
+    "id": "py-env-config",
+    "instruction": "Write a Python function that loads configuration from environment variables with defaults: LOG_LEVEL (default 'INFO'), PORT (default 8000 as int), DEBUG (default False as bool).",
+    "language": "python",
+    "topic": "config"
+  }
+]

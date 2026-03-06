@@ -1,0 +1,9 @@
+# SQLite chat history (optional)
+chat_history.db
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

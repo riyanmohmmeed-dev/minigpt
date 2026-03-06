@@ -1,0 +1,20 @@
+# Phase 2: LoRA SFT training
+# Use a venv with Python 3.10+ and a GPU (or RunPod / Colab).
+
+# Core
+torch>=2.0.0
+transformers>=4.37.0
+datasets>=2.14.0
+accelerate>=0.25.0
+
+# PEFT / LoRA
+peft>=0.7.0
+
+# TRL (SFTTrainer)
+trl>=0.8.0
+
+# 4-bit quantization (optional; saves VRAM)
+bitsandbytes>=0.41.0
+
+# Optional: push adapter to Hub
+huggingface-hub>=0.19.0
