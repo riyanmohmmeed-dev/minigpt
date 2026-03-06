@@ -2,52 +2,72 @@
 
 A coding chatbot built from scratch — custom dataset, LoRA fine-tuning, and a streaming chat UI.
 
-See **[BLUEPRINT.md](BLUEPRINT.md)** for the full plan and research notes.
+> I wanted to understand how models like ChatGPT actually work under the hood, not just call an API. So I built one from the ground up: generated my own training data, fine-tuned a small model with LoRA, and wired it to a chat interface that streams responses in real time.
 
-## Phases
+---
 
-| Phase | Description |
-|-------|-------------|
-| **1** | Dataset pipeline: seed problems → teacher expansion → quadruplets → `.jsonl` → Hugging Face |
-| **2** | LoRA fine-tuning (Qwen2.5-Coder-7B, TRL SFTTrainer) |
-| **3** | Inference API (FastAPI + vLLM, OpenAI-compatible, streaming) |
-| **4** | Next.js chat UI (dark, code highlight, copy) |
+## What this does
 
-## Quick Start (Phase 2)
+- Generates a custom coding dataset from seed problems (or from your own repos)
+- Fine-tunes Qwen2.5-Coder using LoRA (runs on a single GPU)
+- Serves the model through a FastAPI backend with OpenAI-compatible endpoints
+- Streams responses to a dark-mode Next.js chat UI with syntax highlighting
 
-After Phase 1, train a LoRA adapter on the SFT dataset (GPU required):
+## Tech stack
+
+**Training:** Python, Hugging Face Transformers, PEFT/LoRA, TRL SFTTrainer, bitsandbytes (4-bit)  
+**Backend:** FastAPI, vLLM, httpx, SQLite (chat history)  
+**Frontend:** Next.js 15, React, TailwindCSS, react-syntax-highlighter  
+
+## Getting started
+
+### 1. Generate the dataset
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# Option A: Build from your own code (no API key needed)
+python3 scripts/build_dataset_from_repo.py --root /path/to/your/code --out data/processed/repo_code_sft.jsonl
+
+# Option B: Expand seed problems via teacher model (needs OPENAI_API_KEY)
+export OPENAI_API_KEY=sk-...
+python3 scripts/expand_dataset.py --seeds data/seeds --out data/raw
+python3 scripts/to_jsonl.py --raw data/raw --out data/processed/code_sft.jsonl
+```
+
+### 2. Train the model (GPU required)
 
 ```bash
 pip install -r training/requirements.txt
 
-# Default: 7B-Instruct (needs ~16GB VRAM without 4-bit)
-python3 training/run_sft.py --dataset data/processed/code_sft.jsonl --output_dir training/output
+# 7B model with 4-bit quantization (~10GB VRAM)
+python3 training/run_sft.py \
+  --dataset data/processed/repo_code_sft.jsonl \
+  --output_dir training/output \
+  --use_4bit
 
-# Low VRAM: 1.5B + 4-bit (~6GB)
-python3 training/run_sft.py --model_name Qwen/Qwen2.5-Coder-1.5B-Instruct --use_4bit \
-  --dataset data/processed/code_sft.jsonl --output_dir training/output
+# Or use the smaller 1.5B model (~6GB VRAM)
+python3 training/run_sft.py \
+  --model_name Qwen/Qwen2.5-Coder-1.5B-Instruct \
+  --dataset data/processed/repo_code_sft.jsonl \
+  --output_dir training/output
 ```
 
-See **[training/README.md](training/README.md)** for all options and using the trained adapter.
-
-## Quick Start (Phase 3)
-
-Run the inference API (proxy to vLLM). Start vLLM first, then:
+### 3. Start the backend
 
 ```bash
+# First, serve your model with vLLM
+vllm serve Qwen/Qwen2.5-Coder-7B-Instruct --port 8000
+
+# Then start the API
 pip install -r backend/requirements.txt
-export VLLM_BASE_URL=http://localhost:8000   # optional if vLLM is on 8000
 uvicorn backend.app.main:app --reload --port 8001
 ```
 
-- API docs: http://localhost:8001/docs  
-- Chat: `POST http://localhost:8001/v1/chat/completions` (OpenAI-compatible, supports `stream: true`)
+API is OpenAI-compatible: `POST /v1/chat/completions` with `stream: true`.
 
-See **[backend/README.md](backend/README.md)** for env vars and chat history.
-
-## Quick Start (Phase 4)
-
-Run the chat UI (with backend on 8001):
+### 4. Start the frontend
 
 ```bash
 cd frontend
@@ -55,67 +75,42 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. Set `NEXT_PUBLIC_API_URL` in `.env.local` if the backend is not on port 8001.
+Open http://localhost:3000 and start chatting.
 
-See **[frontend/README.md](frontend/README.md)** for options.
-
-## Quick Start (Phase 1)
-
-```bash
-cd mini-chatgpt-coding
-python3 -m venv .venv && source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -r requirements.txt
-
-# Optional: set OPENAI_API_KEY for teacher-based expansion
-export OPENAI_API_KEY=sk-...
-
-# Generate expanded dataset from seeds (small batch for testing)
-python3 scripts/expand_dataset.py --seeds data/seeds --out data/raw --limit 5
-
-# Compile to training .jsonl (SFT messages format)
-# Without running the teacher, you can test with the sample: --raw data/raw/expanded_sample.jsonl
-python3 scripts/to_jsonl.py --raw data/raw --out data/processed/code_sft.jsonl
-
-# Optional: upload to Hugging Face
-python3 scripts/upload_hf.py --dataset data/processed/code_sft.jsonl --repo YOUR_USERNAME/code-instruct-sft
-```
-
-**Train on your repo code (no API key):** See [TRAINING-LOCAL.md](TRAINING-LOCAL.md). Run `scripts/build_dataset_from_repo.py` to build a dataset from all code in your workspace, then train with `training/run_sft.py`.
-
-## Project Layout
+## Project structure
 
 ```
-mini-chatgpt-coding/
-├── BLUEPRINT.md
+minigpt/
+├── scripts/                    # Dataset generation
+│   ├── build_dataset_from_repo.py   # Scan code repos → training data
+│   ├── expand_dataset.py            # Teacher model expansion
+│   ├── to_jsonl.py                  # Convert to SFT format
+│   └── upload_hf.py                 # Push dataset to Hugging Face
 ├── data/
-│   ├── seeds/          # Seed problems (JSON)
-│   ├── raw/            # Teacher outputs
-│   └── processed/      # .jsonl for training
-├── scripts/
-│   ├── expand_dataset.py
-│   ├── to_jsonl.py
-│   ├── build_dataset_from_repo.py   # Build SFT from repo code (no API key)
-│   └── upload_hf.py
-├── training/           # Phase 2: LoRA SFT
-│   ├── README.md
-│   ├── requirements.txt
-│   ├── run_sft.py
-│   └── output/         # adapter saved here by default
-├── backend/            # Phase 3: FastAPI + vLLM proxy
-│   ├── README.md
-│   ├── requirements.txt
+│   ├── seeds/                  # Starter problems
+│   └── processed/              # Generated .jsonl files
+├── training/
+│   └── run_sft.py              # LoRA fine-tuning script
+├── backend/
 │   └── app/
-│       ├── main.py     # /v1/chat/completions, streaming, sessions
+│       ├── main.py             # FastAPI server (streaming, sessions)
 │       ├── config.py
-│       └── storage.py  # optional SQLite chat history
-├── frontend/           # Phase 4: Next.js chat UI
-│   ├── README.md
-│   ├── package.json
-│   └── src/
-│       ├── app/        # layout, page
-│       ├── components/ # Sidebar, ChatMessage, ChatInput
-│       └── lib/        # api.ts (streaming client)
+│       └── storage.py          # SQLite chat history
+└── frontend/
+    └── src/
+        ├── app/                # Next.js pages
+        ├── components/         # ChatMessage, ChatInput, Sidebar
+        └── lib/                # API client with SSE streaming
 ```
+
+## Status
+
+- [x] Dataset generation pipeline
+- [x] LoRA training script
+- [x] FastAPI inference backend
+- [x] Next.js chat UI
+- [ ] Full dataset training run
+- [ ] Model deployment
 
 ## License
 
